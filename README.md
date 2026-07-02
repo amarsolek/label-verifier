@@ -30,6 +30,12 @@ The UI shows which engine is active, and each API response includes it. Try it w
 | `old_tom_wrong_abv.png` | abv `45` | ❌ label shows 40% / 80 proof |
 | `stones_throw_case.png` | brand `Stone's Throw` | ✅ match, noted as caps-only difference |
 | `riverbend_bad_warning.png` | (any) | ❌ warning in title case + reworded, with diff |
+| `midnight_gin.png` | brand `MIDNIGHT`, abv `47`, `750 mL` | ✅ dark modern design, all match |
+| `sunset_ipa.png` | brand `SUNSET CANYON`, abv `6.5`, `12 fl oz` | ✅ colorful beer label; ABV and volume share a line |
+| `casa_azul_tequila.png` | `750 mL` | ❌ label shows 700 mL |
+| `velvet_hare_wine.png` | (any) | ❌ no government warning on the label |
+| `old_tom_photo.png` | same as clean | ✅ simulated photo: slight angle, shadow, noise |
+| `old_tom_photo_glare.png` | same as clean | ❌ glare obscures the warning — a deliberate OCR-limit case; Claude vision handles these |
 
 **Batch mode:** switch to the "Batch upload" tab, drop `test_labels/applications.csv`
 plus all four images, and click Process batch. Results export to CSV.
@@ -130,3 +136,4 @@ matches strictly by filename. The natural next steps are a feedback loop
 (agents mark verdicts right/wrong to build an eval set), COLA form-PDF
 ingestion so application data doesn't need typing, and multi-image support
 for front/back labels.
+

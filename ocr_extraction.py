@@ -66,6 +66,10 @@ def _ocr_lines(img: Image.Image) -> tuple[list[dict], list[float]]:
         word = data["text"][i].strip()
         if not word:
             continue
+        # ornaments/borders often OCR as runs of one letter ("HHHHHHH") — drop
+        if (len(word) >= 3 and word.isalpha()
+                and max(word.lower().count(c) for c in set(word.lower())) / len(word) > 0.7):
+            continue
         conf = float(data["conf"][i])
         if conf < 0:
             continue
@@ -126,13 +130,8 @@ def extract_label_fields(image_bytes: bytes) -> dict:
         return None
 
     abv_line = first_match(_ABV_RE)
-    vol_line = None
-    for ln in body_lines:
-        if ln is abv_line:
-            continue
-        if _VOL_RE.search(ln["text"]):
-            vol_line = ln
-            break
+    # net contents may share a line with ABV (common on beer: "6.5% ALC/VOL - 12 FL OZ")
+    vol_line = next((ln for ln in body_lines if _VOL_RE.search(ln["text"])), None)
     producer_line = first_match(_PRODUCER_RE)
     origin_m = next((m for ln in body_lines
                      if (m := _ORIGIN_RE.search(ln["text"]))), None)
@@ -155,7 +154,7 @@ def extract_label_fields(image_bytes: bytes) -> dict:
         if between:
             # keep the taller lines (drops small print), preserve order
             tallest = max(ln["height"] for ln in between)
-            kept = [ln for ln in between if ln["height"] >= 0.6 * tallest]
+            kept = [ln for ln in between if ln["height"] >= 0.75 * tallest]
             class_type = " ".join(ln["text"] for ln in kept) or None
 
     return {
@@ -172,3 +171,5 @@ def extract_label_fields(image_bytes: bytes) -> dict:
         },
         "image_quality_issues": issues,
     }
+
+
