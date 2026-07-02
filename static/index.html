@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TTB Label Verifier</title>
+<style>
+  :root {
+    --navy: #1a2f4b; --blue: #2563eb; --blue-dark: #1d4ed8;
+    --green: #15803d; --green-bg: #f0fdf4; --green-border: #bbf7d0;
+    --red: #b91c1c; --red-bg: #fef2f2; --red-border: #fecaca;
+    --amber: #b45309; --amber-bg: #fffbeb; --amber-border: #fde68a;
+    --gray: #6b7280; --border: #d1d5db; --bg: #f3f4f6;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: #111827;
+         font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+         font-size: 17px; line-height: 1.5; }
+  header { background: var(--navy); color: #fff; padding: 20px 28px; }
+  header h1 { margin: 0; font-size: 26px; }
+  header p { margin: 4px 0 0; opacity: .85; font-size: 15px; }
+  main { max-width: 1100px; margin: 24px auto; padding: 0 20px 60px; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tabs button { font-size: 18px; font-weight: 600; padding: 12px 26px;
+    border: 2px solid var(--border); border-radius: 10px; background: #fff;
+    cursor: pointer; color: #374151; }
+  .tabs button.active { background: var(--blue); border-color: var(--blue);
+    color: #fff; }
+  .tabs button:focus-visible { outline: 3px solid var(--blue-dark); outline-offset: 2px; }
+
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 12px;
+    padding: 22px; margin-bottom: 18px; }
+  .card h2 { margin: 0 0 6px; font-size: 20px; }
+  .hint { color: var(--gray); font-size: 15px; margin: 0 0 14px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+
+  label.field { display: block; font-weight: 600; margin: 12px 0 4px; }
+  input[type=text] { width: 100%; font-size: 17px; padding: 11px 12px;
+    border: 2px solid var(--border); border-radius: 8px; }
+  input[type=text]:focus { border-color: var(--blue); outline: none; }
+
+  .dropzone { border: 3px dashed var(--border); border-radius: 12px;
+    padding: 30px 16px; text-align: center; color: var(--gray);
+    cursor: pointer; transition: border-color .15s, background .15s; }
+  .dropzone.drag { border-color: var(--blue); background: #eff6ff; }
+  .dropzone img { max-width: 100%; max-height: 260px; border-radius: 8px; }
+  .dropzone .dz-big { font-size: 19px; font-weight: 600; color: #374151; }
+
+  .btn { display: inline-block; font-size: 20px; font-weight: 700;
+    padding: 14px 34px; border: none; border-radius: 10px; cursor: pointer;
+    background: var(--blue); color: #fff; }
+  .btn:hover { background: var(--blue-dark); }
+  .btn:disabled { background: #9ca3af; cursor: not-allowed; }
+  .btn.secondary { background: #fff; color: var(--blue);
+    border: 2px solid var(--blue); font-size: 16px; padding: 10px 20px; }
+
+  .banner { border-radius: 12px; padding: 18px 22px; font-size: 21px;
+    font-weight: 700; display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px; border: 2px solid; }
+  .banner small { display: block; font-size: 15px; font-weight: 400; }
+  .banner.match { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+  .banner.mismatch { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+  .banner.needs_review { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-border); }
+
+  .frow { display: flex; gap: 14px; padding: 14px 6px; border-top: 1px solid #e5e7eb;
+    align-items: flex-start; }
+  .frow:first-child { border-top: none; }
+  .ficon { font-size: 24px; line-height: 1; width: 32px; text-align: center; flex: none; }
+  .fname { font-weight: 700; width: 175px; flex: none; }
+  .fbody { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .fvals { color: #374151; font-size: 15.5px; }
+  .fvals b { color: #111827; }
+  .fnote { font-size: 15px; color: var(--gray); margin-top: 3px; }
+  .status-chip { display: inline-block; font-size: 13px; font-weight: 700;
+    padding: 2px 10px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+  .status-chip.match { background: var(--green-bg); color: var(--green); }
+  .status-chip.mismatch, .status-chip.missing { background: var(--red-bg); color: var(--red); }
+  .status-chip.needs_review { background: var(--amber-bg); color: var(--amber); }
+
+  .diffbox { background: var(--red-bg); border: 1px solid var(--red-border);
+    border-radius: 8px; padding: 10px 14px; margin-top: 8px; font-size: 15px; }
+  .diffbox .exp { color: var(--green); }
+  .diffbox .fnd { color: var(--red); text-decoration: line-through; }
+
+  .quality { background: var(--amber-bg); border: 1px solid var(--amber-border);
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 15px;
+    color: var(--amber); }
+
+  .timing { color: var(--gray); font-size: 14px; text-align: right; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 15.5px; }
+  th, td { text-align: left; padding: 10px 10px; border-bottom: 1px solid #e5e7eb; }
+  th { background: #f9fafb; font-size: 14px; text-transform: uppercase;
+       letter-spacing: .03em; color: var(--gray); }
+  tr.expandable { cursor: pointer; }
+  tr.expandable:hover { background: #f9fafb; }
+  .detail-cell { background: #f9fafb; }
+
+  .progress { height: 14px; background: #e5e7eb; border-radius: 999px;
+    overflow: hidden; margin: 12px 0; }
+  .progress div { height: 100%; background: var(--blue); width: 0%;
+    transition: width .3s; }
+
+  .summary-chips { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0 16px; }
+  .schip { border-radius: 10px; padding: 10px 18px; font-weight: 700; font-size: 17px;
+    border: 2px solid; }
+  .schip.match { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+  .schip.mismatch { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+  .schip.needs_review { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-border); }
+  .schip.error { background: #f3f4f6; color: #374151; border-color: var(--border); }
+
+  .error-box { background: var(--red-bg); border: 2px solid var(--red-border);
+    color: var(--red); border-radius: 10px; padding: 14px 18px; margin-top: 14px;
+    font-weight: 600; }
+  .spinner { display: inline-block; width: 22px; height: 22px; border: 3px solid #fff;
+    border-top-color: transparent; border-radius: 50%; vertical-align: -5px;
+    animation: spin .7s linear infinite; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  code { background: #f3f4f6; padding: 1px 6px; border-radius: 5px; font-size: 90%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>TTB Label Verifier</h1>
+  <p>Checks a label image against the application — brand name, class/type, alcohol content, net contents, and the government health warning.</p>
+</header>
+<main>
+  <div class="tabs" role="tablist">
+    <button id="tab-single" class="active" onclick="showTab('single')">Single label</button>
+    <button id="tab-batch" onclick="showTab('batch')">Batch upload</button>
+  </div>
+
+  <!-- ============ SINGLE ============ -->
+  <section id="pane-single">
+    <div class="grid">
+      <div class="card">
+        <h2>1&#41; Application data</h2>
+        <p class="hint">Enter the fields exactly as they appear on the COLA application. Leave a field blank to skip it. The government warning is always checked automatically.</p>
+        <label class="field" for="f-brand">Brand name</label>
+        <input type="text" id="f-brand" placeholder="e.g. OLD TOM DISTILLERY">
+        <label class="field" for="f-class">Class / type</label>
+        <input type="text" id="f-class" placeholder="e.g. Kentucky Straight Bourbon Whiskey">
+        <label class="field" for="f-abv">Alcohol content</label>
+        <input type="text" id="f-abv" placeholder="e.g. 45% Alc./Vol. (90 Proof) — or just 45">
+        <label class="field" for="f-vol">Net contents</label>
+        <input type="text" id="f-vol" placeholder="e.g. 750 mL">
+      </div>
+      <div class="card">
+        <h2>2&#41; Label image</h2>
+        <p class="hint">Drop an image here, click to browse, or paste from the clipboard.</p>
+        <div class="dropzone" id="dz" tabindex="0" role="button"
+             aria-label="Upload label image">
+          <div id="dz-empty">
+            <div class="dz-big">Drop label image here</div>
+            <div>or click to choose a file &middot; JPEG, PNG, WebP</div>
+          </div>
+          <img id="dz-preview" style="display:none" alt="Label preview">
+          <div id="dz-name" style="margin-top:8px;font-size:14px"></div>
+        </div>
+        <input type="file" id="file-input" accept="image/*" style="display:none">
+      </div>
+    </div>
+    <div style="text-align:center;margin:6px 0 22px">
+      <button class="btn" id="verify-btn" onclick="runSingle()">Verify label</button>
+    </div>
+    <div id="single-error"></div>
+    <div id="single-results"></div>
+  </section>
+
+  <!-- ============ BATCH ============ -->
+  <section id="pane-batch" style="display:none">
+    <div class="grid">
+      <div class="card">
+        <h2>1&#41; Applications CSV</h2>
+        <p class="hint">One row per label. Columns: <code>image_filename</code>,
+          <code>brand_name</code>, <code>class_type</code>, <code>alcohol_content</code>,
+          <code>net_contents</code>.
+          <a href="#" onclick="downloadTemplate();return false">Download template</a></p>
+        <div class="dropzone" id="csv-dz" tabindex="0" role="button" aria-label="Upload CSV">
+          <div class="dz-big" id="csv-label">Drop CSV here or click to choose</div>
+        </div>
+        <input type="file" id="csv-input" accept=".csv,text/csv" style="display:none">
+      </div>
+      <div class="card">
+        <h2>2&#41; Label images</h2>
+        <p class="hint">Select all the label images at once. They're matched to CSV rows by filename.</p>
+        <div class="dropzone" id="imgs-dz" tabindex="0" role="button" aria-label="Upload label images">
+          <div class="dz-big" id="imgs-label">Drop images here or click to choose</div>
+        </div>
+        <input type="file" id="imgs-input" accept="image/*" multiple style="display:none">
+      </div>
+    </div>
+    <div style="text-align:center;margin:6px 0 22px">
+      <button class="btn" id="batch-btn" onclick="runBatch()" disabled>Process batch</button>
+    </div>
+    <div id="batch-error"></div>
+    <div id="batch-progress" style="display:none" class="card">
+      <div id="batch-progress-label">Processing…</div>
+      <div class="progress"><div id="batch-bar"></div></div>
+    </div>
+    <div id="batch-results"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const ICONS = { match: "✅", mismatch: "❌", missing: "❌",
+                needs_review: "⚠️", error: "❗" };
+const STATUS_TEXT = { match: "Match", mismatch: "Mismatch", missing: "Missing",
+                      needs_review: "Needs review", error: "Error" };
+const OVERALL_TEXT = {
+  match: ["All checks passed", "Label matches the application."],
+  mismatch: ["Problems found", "One or more fields do not match. Review below."],
+  needs_review: ["Needs agent review", "Close matches found that need human judgment."],
+};
+
+function showTab(which) {
+  for (const t of ["single", "batch"]) {
+    document.getElementById("pane-" + t).style.display = t === which ? "" : "none";
+    document.getElementById("tab-" + t).classList.toggle("active", t === which);
+  }
+}
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g,
+    c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* ---------- shared rendering ---------- */
+function fieldRow(r) {
+  let vals = "";
+  if (r.expected != null && r.found != null)
+    vals = `<div class="fvals">Application: <b>${esc(r.expected)}</b><br>Label: <b>${esc(r.found)}</b></div>`;
+  else if (r.expected != null)
+    vals = `<div class="fvals">Application: <b>${esc(r.expected)}</b></div>`;
+  else if (r.found != null)
+    vals = `<div class="fvals">Label: <b>${esc(r.found)}</b></div>`;
+  let diff = "";
+  if (r.diff && r.diff.length) {
+    diff = `<div class="diffbox"><b>Differences from required text:</b><br>` +
+      r.diff.map(d =>
+        `${d.expected ? `should say <span class="exp">&ldquo;${esc(d.expected)}&rdquo;</span>` : ""}` +
+        `${d.expected && d.found ? " &mdash; " : ""}` +
+        `${d.found ? `label says <span class="fnd">&ldquo;${esc(d.found)}&rdquo;</span>` : ""}`
+      ).join("<br>") + `</div>`;
+  }
+  return `<div class="frow">
+    <div class="ficon">${ICONS[r.status] || ""}</div>
+    <div class="fname">${esc(r.label)}<span class="status-chip ${r.status}">${STATUS_TEXT[r.status]}</span></div>
+    <div class="fbody">${vals}${r.note ? `<div class="fnote">${esc(r.note)}</div>` : ""}${diff}</div>
+  </div>`;
+}
+
+function reportHTML(rep) {
+  const [title, sub] = OVERALL_TEXT[rep.overall] || ["", ""];
+  const quality = (rep.image_quality_issues || []).length
+    ? `<div class="quality">&#9888;&#65039; Image quality: ${rep.image_quality_issues.map(esc).join("; ")}. Results may be less reliable &mdash; consider requesting a better image.</div>`
+    : "";
+  return `
+    <div class="banner ${rep.overall}"><span style="font-size:28px">${ICONS[rep.overall]}</span>
+      <span>${title}<small>${sub}</small></span></div>
+    ${quality}
+    <div class="card">${rep.results.map(fieldRow).join("")}
+      <div class="timing">Processed in ${rep.elapsed_seconds}s</div></div>`;
+}
+
+/* ---------- dropzone helper ---------- */
+function wireDropzone(dzId, inputId, onFiles) {
+  const dz = document.getElementById(dzId), input = document.getElementById(inputId);
+  dz.addEventListener("click", () => input.click());
+  dz.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") input.click(); });
+  input.addEventListener("change", () => onFiles([...input.files]));
+  dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("drag"); });
+  dz.addEventListener("dragleave", () => dz.classList.remove("drag"));
+  dz.addEventListener("drop", e => {
+    e.preventDefault(); dz.classList.remove("drag");
+    onFiles([...e.dataTransfer.files]);
+  });
+}
+
+/* ---------- single mode ---------- */
+let singleFile = null;
+wireDropzone("dz", "file-input", files => setSingleFile(files[0]));
+document.addEventListener("paste", e => {
+  const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
+  if (item && document.getElementById("pane-single").style.display !== "none")
+    setSingleFile(item.getAsFile());
+});
+function setSingleFile(f) {
+  if (!f || !f.type.startsWith("image/")) return;
+  singleFile = f;
+  const img = document.getElementById("dz-preview");
+  img.src = URL.createObjectURL(f);
+  img.style.display = "";
+  document.getElementById("dz-empty").style.display = "none";
+  document.getElementById("dz-name").textContent = f.name;
+}
+
+function appFieldsFromForm() {
+  return {
+    brand_name: document.getElementById("f-brand").value.trim() || null,
+    class_type: document.getElementById("f-class").value.trim() || null,
+    alcohol_content: document.getElementById("f-abv").value.trim() || null,
+    net_contents: document.getElementById("f-vol").value.trim() || null,
+  };
+}
+
+async function callVerify(file, appFields) {
+  const fd = new FormData();
+  fd.append("image", file);
+  fd.append("application", JSON.stringify(appFields));
+  const res = await fetch("/api/verify", { method: "POST", body: fd });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.detail || `Server error (${res.status})`);
+  return body;
+}
+
+async function runSingle() {
+  const errBox = document.getElementById("single-error");
+  const out = document.getElementById("single-results");
+  errBox.innerHTML = ""; out.innerHTML = "";
+  if (!singleFile) {
+    errBox.innerHTML = `<div class="error-box">Please add a label image first.</div>`;
+    return;
+  }
+  const fields = appFieldsFromForm();
+  if (!fields.brand_name && !fields.class_type && !fields.alcohol_content && !fields.net_contents) {
+    errBox.innerHTML = `<div class="error-box">Enter at least one application field (or use batch mode with a CSV). The government warning is always checked.</div>`;
+  }
+  const btn = document.getElementById("verify-btn");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>Checking&hellip;`;
+  try {
+    const rep = await callVerify(singleFile, fields);
+    out.innerHTML = reportHTML(rep);
+  } catch (e) {
+    errBox.innerHTML = `<div class="error-box">${esc(e.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = "Verify label";
+  }
+}
+
+/* ---------- batch mode ---------- */
+let batchRows = null, batchImages = new Map();
+
+function parseCSV(text) {
+  // Small RFC-4180-ish parser: handles quoted fields and commas in quotes.
+  const rows = []; let row = [], cur = "", inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
+      else cur += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ",") { row.push(cur); cur = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(cur); cur = "";
+      if (row.some(v => v.trim() !== "")) rows.push(row);
+      row = [];
+    } else cur += c;
+  }
+  row.push(cur);
+  if (row.some(v => v.trim() !== "")) rows.push(row);
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.trim().toLowerCase().replace(/\s+/g, "_"));
+  return rows.slice(1).map(r =>
+    Object.fromEntries(headers.map((h, i) => [h, (r[i] ?? "").trim()])));
+}
+
+wireDropzone("csv-dz", "csv-input", async files => {
+  const f = files[0]; if (!f) return;
+  batchRows = parseCSV(await f.text());
+  document.getElementById("csv-label").textContent =
+    `${f.name} — ${batchRows.length} application${batchRows.length === 1 ? "" : "s"}`;
+  updateBatchButton();
+});
+wireDropzone("imgs-dz", "imgs-input", files => {
+  for (const f of files) if (f.type.startsWith("image/")) batchImages.set(f.name, f);
+  document.getElementById("imgs-label").textContent =
+    `${batchImages.size} image${batchImages.size === 1 ? "" : "s"} ready`;
+  updateBatchButton();
+});
+function updateBatchButton() {
+  document.getElementById("batch-btn").disabled = !(batchRows?.length && batchImages.size);
+}
+
+function downloadTemplate() {
+  const csv = "image_filename,brand_name,class_type,alcohol_content,net_contents\n" +
+    'old_tom.png,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45,750 mL\n';
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = "applications_template.csv";
+  a.click();
+}
+
+async function runBatch() {
+  const out = document.getElementById("batch-results");
+  const errBox = document.getElementById("batch-error");
+  out.innerHTML = ""; errBox.innerHTML = "";
+  const jobs = batchRows.map((row, i) => ({ row, i,
+    file: batchImages.get(row.image_filename) || null }));
+
+  const prog = document.getElementById("batch-progress");
+  const bar = document.getElementById("batch-bar");
+  const progLabel = document.getElementById("batch-progress-label");
+  prog.style.display = ""; bar.style.width = "0%";
+  document.getElementById("batch-btn").disabled = true;
+
+  const results = new Array(jobs.length);
+  let done = 0;
+  const CONCURRENCY = 4;
+  let next = 0;
+  async function worker() {
+    while (next < jobs.length) {
+      const j = jobs[next++];
+      if (!j.file) {
+        results[j.i] = { error: `Image "${j.row.image_filename}" was not uploaded.`, row: j.row };
+      } else {
+        try {
+          results[j.i] = { rep: await callVerify(j.file, {
+            brand_name: j.row.brand_name || null,
+            class_type: j.row.class_type || null,
+            alcohol_content: j.row.alcohol_content || null,
+            net_contents: j.row.net_contents || null }), row: j.row };
+        } catch (e) {
+          results[j.i] = { error: e.message, row: j.row };
+        }
+      }
+      done++;
+      bar.style.width = (100 * done / jobs.length) + "%";
+      progLabel.textContent = `Processing… ${done} of ${jobs.length} labels checked`;
+    }
+  }
+  const t0 = performance.now();
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, jobs.length) }, worker));
+  const secs = ((performance.now() - t0) / 1000).toFixed(1);
+  prog.style.display = "none";
+  document.getElementById("batch-btn").disabled = false;
+  renderBatch(results, secs);
+}
+
+function overallOf(r) { return r.error ? "error" : r.rep.overall; }
+
+function renderBatch(results, secs) {
+  const counts = { match: 0, needs_review: 0, mismatch: 0, error: 0 };
+  results.forEach(r => counts[overallOf(r)]++);
+  const chips = `
+    <div class="summary-chips">
+      <div class="schip match">&#9989; ${counts.match} passed</div>
+      <div class="schip needs_review">&#9888;&#65039; ${counts.needs_review} need review</div>
+      <div class="schip mismatch">&#10060; ${counts.mismatch} failed</div>
+      ${counts.error ? `<div class="schip error">&#10071; ${counts.error} errors</div>` : ""}
+      <div class="schip error">${results.length} labels in ${secs}s</div>
+    </div>
+    <button class="btn secondary" onclick="exportCSV()">Download results CSV</button>`;
+
+  const rowsHtml = results.map((r, i) => {
+    const status = overallOf(r);
+    const issues = r.error ? esc(r.error) :
+      r.rep.results.filter(x => x.status !== "match")
+        .map(x => esc(x.label)).join(", ") || "—";
+    return `<tr class="expandable" onclick="toggleDetail(${i})">
+        <td>${ICONS[status]}</td>
+        <td>${esc(r.row.image_filename)}</td>
+        <td>${esc(r.row.brand_name || "")}</td>
+        <td><span class="status-chip ${status}">${STATUS_TEXT[status]}</span></td>
+        <td>${issues}</td>
+        <td>${r.rep ? r.rep.elapsed_seconds + "s" : ""}</td>
+      </tr>
+      <tr id="detail-${i}" style="display:none"><td class="detail-cell" colspan="6">
+        ${r.rep ? r.rep.results.map(fieldRow).join("") : esc(r.error || "")}
+      </td></tr>`;
+  }).join("");
+
+  document.getElementById("batch-results").innerHTML = `
+    ${chips}
+    <div class="card" style="margin-top:14px;overflow-x:auto">
+      <table>
+        <thead><tr><th></th><th>Image</th><th>Brand</th><th>Result</th>
+          <th>Issues (click row for detail)</th><th>Time</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>`;
+  window._batchResults = results;
+}
+
+function toggleDetail(i) {
+  const el = document.getElementById("detail-" + i);
+  el.style.display = el.style.display === "none" ? "" : "none";
+}
+
+function exportCSV() {
+  const results = window._batchResults || [];
+  const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lines = ["image_filename,brand_name,overall,field,status,expected,found,note"];
+  for (const r of results) {
+    if (r.error) {
+      lines.push([r.row.image_filename, r.row.brand_name, "error", "", "error", "", "", r.error].map(q).join(","));
+      continue;
+    }
+    for (const f of r.rep.results)
+      lines.push([r.row.image_filename, r.row.brand_name, r.rep.overall,
+        f.field, f.status, f.expected, f.found, f.note].map(q).join(","));
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+  a.download = "verification_results.csv";
+  a.click();
+}
+
+/* ---------- startup: show which extraction engine is active ---------- */
+fetch("/api/health").then(r => r.json()).then(h => {
+  const box = document.getElementById("single-error");
+  if (h.engine === "ocr" && !h.tesseract_available) {
+    box.innerHTML =
+      `<div class="error-box">No ANTHROPIC_API_KEY is set and Tesseract OCR is
+       not installed, so verification will fail. Install Tesseract or set an
+       API key — see the README.</div>`;
+  } else if (h.engine === "ocr") {
+    box.innerHTML =
+      `<div class="quality">Running in <b>local OCR mode</b> (no API key
+       needed). Works well on clean, straight-on label images. Set
+       ANTHROPIC_API_KEY to enable AI vision for tricky photos.</div>`;
+  }
+}).catch(() => {});
+</script>
+</body>
+</html>

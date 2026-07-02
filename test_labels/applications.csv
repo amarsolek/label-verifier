@@ -1,0 +1,5 @@
+image_filename,brand_name,class_type,alcohol_content,net_contents
+old_tom_clean.png,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45,750 mL
+old_tom_wrong_abv.png,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45,750 mL
+stones_throw_case.png,Stone's Throw,Small Batch Rye Whiskey,46.5,750 mL
+riverbend_bad_warning.png,RIVERBEND,California Red Wine,13.5,750 mL
