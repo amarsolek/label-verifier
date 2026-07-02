@@ -5,6 +5,9 @@ FROM python:3.12-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
+    
+# Tesseract's OpenMP threads thrash on fractional-CPU containers
+ENV OMP_THREAD_LIMIT=1
 
 WORKDIR /app
 
